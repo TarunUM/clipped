@@ -6,7 +6,7 @@ import { AppComponent } from './app.component';
 import { UserModule } from './user/user.module';
 import { NavComponent } from './nav/nav.component';
 import { AngularFireModule } from '@angular/fire/compat';
-// import { environment } from '../environments/environment.development';
+import { environment } from '../environments/environment.development';
 import { AngularFireAuthModule } from '@angular/fire/compat/auth';
 
 @NgModule({
@@ -15,7 +15,7 @@ import { AngularFireAuthModule } from '@angular/fire/compat/auth';
     BrowserModule,
     AppRoutingModule,
     UserModule,
-    // AngularFireModule.initializeApp(environment.firebase),
+    AngularFireModule.initializeApp(environment.firebase),
     AngularFireAuthModule,
   ],
   providers: [],
