@@ -19,7 +19,7 @@
 
       <!-- Image -->
       <a href="#">
-        <img class="card-img-top rounded-tl-2xl w-full" src="assets/img/1.jpg">
+        <img class="card-img-top rounded-tl-2xl w-full" src="assets/img/1.jpg" alt="1.jpg">
       </a>
 
       <!-- Body -->
@@ -50,4 +50,4 @@
   </div>
 </div>
 
-<app-edit></app-edit>
+<app-edit [activateClip]="activateClip" (update)="update($event)"></app-edit>
