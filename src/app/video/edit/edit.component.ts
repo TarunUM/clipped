@@ -34,11 +34,11 @@ export class EditComponent implements OnInit, OnDestroy {
 
   constructor(private modal: ModalService, private clipsService: ClipService) {}
 
-  ngOnInit(): void {
+  ngOnInit() {
     this.modal.register('editClip');
   }
 
-  ngOnDestroy(): void {
+  ngOnDestroy() {
     this.modal.unregister('editClip');
   }
 
