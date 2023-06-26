@@ -10,6 +10,7 @@ import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { ClipService } from '../../services/clip.service';
 import { Router } from '@angular/router';
+import { FfmpegService } from '../../services/ffmpeg.service';
 
 @Component({
   selector: 'app-upload',
@@ -28,7 +29,7 @@ export class UploadComponent implements OnDestroy {
   showPercentage = false;
   user: firebase.User | null = null;
   uploadTask?: AngularFireUploadTask;
-
+  screenshots: string[] = [];
   title = new FormControl('', [Validators.required, Validators.minLength(3)]);
 
   uploadForm = new FormGroup({
@@ -39,20 +40,21 @@ export class UploadComponent implements OnDestroy {
     private storage: AngularFireStorage,
     private auth: AngularFireAuth,
     private clipsService: ClipService,
-    private router: Router
+    private router: Router,
+    public ffmpegservice: FfmpegService
   ) {
     this.auth.user.subscribe((user) => {
       // obj will never be null because of the Route-Guards
       this.user = user;
-      console.log(this.user);
     });
+    this.ffmpegservice.init();
   }
 
   ngOnDestroy() {
     this.uploadTask?.cancel();
   }
 
-  storeFile($event: Event) {
+  async storeFile($event: Event) {
     this.isDragOver = false;
 
     // As Chrome doesn't support direct access to the file we need to store it 'file' variable
@@ -63,9 +65,11 @@ export class UploadComponent implements OnDestroy {
     if (!this.file || this.file.type !== 'video/mp4') {
       return;
     }
+
+    this.screenshots = await this.ffmpegservice.getScreenshots(this.file);
+
     this.title.setValue(this.file.name.replace(/\.[^/.]+$/, ''));
     this.nextStepForm = true;
-    console.log(this.file);
   }
 
   uploadFile() {
