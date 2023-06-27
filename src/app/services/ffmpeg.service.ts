@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 import { createFFmpeg, fetchFile } from '@ffmpeg/ffmpeg';
-import { blob } from 'stream/consumers';
 
 @Injectable({
   providedIn: 'root',
 })
 export class FfmpegService {
+  isRunning = false;
   isReady = false;
   private _ffmpeg;
 
@@ -26,6 +26,7 @@ export class FfmpegService {
   }
 
   async getScreenshots(file: File) {
+    this.isRunning = true;
     const data = await fetchFile(file);
     this._ffmpeg.FS('writeFile', file.name, data);
 
@@ -69,7 +70,13 @@ export class FfmpegService {
 
       screenshots.push(screenshotUrl);
     });
+    this.isRunning = false;
 
     return screenshots;
+  }
+
+  async blobFromUrl(url: string) {
+    const response = await fetch(url);
+    return await response.blob();
   }
 }

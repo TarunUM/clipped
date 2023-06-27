@@ -5,12 +5,13 @@ import {
   AngularFireUploadTask,
 } from '@angular/fire/compat/storage';
 import { v4 as uuidV4 } from 'uuid';
-import { last, switchMap } from 'rxjs/operators';
+import { switchMap } from 'rxjs/operators';
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import firebase from 'firebase/compat/app';
 import { ClipService } from '../../services/clip.service';
 import { Router } from '@angular/router';
 import { FfmpegService } from '../../services/ffmpeg.service';
+import { combineLatest, forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-upload',
@@ -30,6 +31,9 @@ export class UploadComponent implements OnDestroy {
   user: firebase.User | null = null;
   uploadTask?: AngularFireUploadTask;
   screenshots: string[] = [];
+  selectedScreenshots = '';
+  screenshotTask?: AngularFireUploadTask;
+
   title = new FormControl('', [Validators.required, Validators.minLength(3)]);
 
   uploadForm = new FormGroup({
@@ -55,6 +59,9 @@ export class UploadComponent implements OnDestroy {
   }
 
   async storeFile($event: Event) {
+    if (this.ffmpegservice.isRunning) {
+      return;
+    }
     this.isDragOver = false;
 
     // As Chrome doesn't support direct access to the file we need to store it 'file' variable
@@ -67,12 +74,13 @@ export class UploadComponent implements OnDestroy {
     }
 
     this.screenshots = await this.ffmpegservice.getScreenshots(this.file);
+    this.selectedScreenshots = this.screenshots[0];
 
     this.title.setValue(this.file.name.replace(/\.[^/.]+$/, ''));
     this.nextStepForm = true;
   }
 
-  uploadFile() {
+  async uploadFile() {
     this.uploadForm.disable();
     this.showAlert = true;
     this.alertColor = 'blue';
@@ -82,26 +90,50 @@ export class UploadComponent implements OnDestroy {
 
     const fileName = uuidV4();
     const filePath = `clipped/${fileName}.mp4`;
+
+    const screenshotBlob = await this.ffmpegservice.blobFromUrl(
+      this.selectedScreenshots
+    );
+    const screenshotPath = `screenshots/${fileName}.png`;
+
     this.uploadTask = this.storage.upload(filePath, this.file);
     const clipRef = this.storage.ref(filePath);
 
-    this.uploadTask
-      .percentageChanges()
-      .subscribe((progress) => (this.percentage = (progress as number) / 100));
-    this.uploadTask
-      .snapshotChanges()
+    this.screenshotTask = this.storage.upload(screenshotPath, screenshotBlob);
+    const screenshotRef = this.storage.ref(screenshotPath);
+
+    combineLatest([
+      this.uploadTask.percentageChanges(),
+      this.screenshotTask.percentageChanges(),
+    ]).subscribe((progess) => {
+      const [clipTask, photoTask] = progess;
+      if (!clipTask || !photoTask) {
+        return;
+      }
+      const total = clipTask + photoTask;
+      this.percentage = (total as number) / 200;
+    });
+
+    forkJoin([
+      this.uploadTask.snapshotChanges(),
+      this.screenshotTask.snapshotChanges(),
+    ])
       .pipe(
-        last(),
-        switchMap(() => clipRef.getDownloadURL())
+        switchMap(() =>
+          forkJoin([clipRef.getDownloadURL(), screenshotRef.getDownloadURL()])
+        )
       )
       .subscribe({
-        next: async (url) => {
+        next: async (urls) => {
+          const [clipUrl, screenshotUrl] = urls;
           const fileData = {
             uid: this.user?.uid as string,
             displayName: this.user?.displayName as string,
             title: this.title.value as string,
             fileName: `${fileName}.mp4`,
-            url,
+            url: clipUrl,
+            screenshotUrl,
+            screenshotFileName: `${fileName}.png`,
             timeStamp: firebase.firestore.FieldValue.serverTimestamp(),
           };
           const clipDocRef = await this.clipsService.createClip(fileData);
