@@ -23,6 +23,11 @@ const routes: Routes = [
     },
   },
   {
+    path: '', // ex: /dashboard/manage or /dashboard/edit
+    loadChildren: async () =>
+      (await import('./video/video.module')).VideoModule,
+  },
+  {
     path: '**',
     component: NotFoundComponent,
   },
