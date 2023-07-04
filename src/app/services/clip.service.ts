@@ -8,13 +8,19 @@ import {
 import { AngularFireAuth } from '@angular/fire/compat/auth';
 import IClip from '../models/iclip.model';
 import { switchMap, map } from 'rxjs/operators';
-import { of, BehaviorSubject, combineLatest } from 'rxjs';
+import { of, BehaviorSubject, combineLatest, Observable } from 'rxjs';
 import { AngularFireStorage } from '@angular/fire/compat/storage';
+import {
+  ActivatedRouteSnapshot,
+  Resolve,
+  RouterStateSnapshot,
+  Router,
+} from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
 })
-export class ClipService {
+export class ClipService implements Resolve<IClip | null> {
   public clipCollection: AngularFirestoreCollection<IClip>;
   pageClips: IClip[] = [];
   pendingReq = false;
@@ -22,9 +28,27 @@ export class ClipService {
   constructor(
     private db: AngularFirestore,
     private auth: AngularFireAuth,
-    private storage: AngularFireStorage
+    private storage: AngularFireStorage,
+    private router: Router
   ) {
     this.clipCollection = db.collection('clips');
+  }
+
+  resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+    return this.clipCollection
+      .doc(route.params['id'])
+      .get()
+      .pipe(
+        map((snapshot) => {
+          const data = snapshot.data();
+
+          if (!data) {
+            this.router.navigate(['/']);
+            return null;
+          }
+          return data;
+        })
+      );
   }
 
   // instead of await async function we are returning promise
