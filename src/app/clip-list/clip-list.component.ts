@@ -15,6 +15,7 @@ export class ClipListComponent implements OnInit, OnDestroy {
     if (this.scrollable) {
       window.addEventListener('scroll', this.handleScroll);
     }
+    console.log(process.env['API_KEY']);
   }
 
   ngOnDestroy() {
