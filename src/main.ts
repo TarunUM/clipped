@@ -1,12 +1,14 @@
 import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
-import { environment } from './environments/environment.development';
+import { environment } from './environments/environment';
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 
 import { AppModule } from './app/app.module';
 
 firebase.initializeApp(environment.firebase);
+
 let appInit = false;
+
 firebase.auth().onAuthStateChanged(() => {
   if (!appInit) {
     platformBrowserDynamic()
